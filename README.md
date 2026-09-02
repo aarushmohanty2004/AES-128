@@ -7,11 +7,15 @@ An implementation and verification suite for the **AES-128** (Advanced Encryptio
 ## Project Structure
 
 ### `AES_Python`
+
 Contains the Jupyter Notebook implementation of the AES-128 algorithm.  
+
 * **Purpose:** Used as a reference model to test AES-128 against standard sample inputs and generate expected outputs (test vectors) for verification.
 
 ### `AES_RTL`
+
 Contains the Register-Transfer Level (RTL) code for the AES-128 architecture.  
+
 * **Purpose:** Hardware implementation (Verilog/SystemVerilog/VHDL) designed for synthesis and FPGA/ASIC simulation.
 
 ---
