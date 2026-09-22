@@ -1,6 +1,6 @@
 module subBytes (
     input wire clk,
-    input wire en,
+    input wire ena,
     input wire start,
     input wire [127:0] state,
     output reg [127:0] sub_out = 128'd0,
