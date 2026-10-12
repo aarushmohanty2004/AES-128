@@ -2,12 +2,30 @@ module aes_top (
     input wire clk,
     input wire en,
     input wire start,
-	input wire [127:0] aes_inp,
-	input wire [127:0] key_128,
+	input wire rst,
+	input wire [15:0] aes_inp,
+	input wire [15:0] key_128,
 	output wire [127:0] aes_out,
 	output wire done,
 	output wire key_done
 );
+	// Internal registers
+    reg [127:0] aes_inp_reg = 128'd0;
+    reg [127:0] key_128_reg = 128'd0;
+    reg [3:0] load_cnt = 4'd0;
+
+	// Ask Sir about this implementation
+    always @(posedge clk) begin
+        if (rst) begin
+            if (aes_inp != 16'd0 || key_128 != 16'd0 || (load_cnt > 4'd0 && load_cnt < 4'd8)) begin
+                aes_inp_reg <= {aes_inp_reg[111:0], aes_inp};
+                key_128_reg <= {key_128_reg[111:0], key_128};
+                load_cnt <= load_cnt + 1'b1;
+            end
+        end else begin
+            load_cnt <= 4'd0;
+        end
+    end
 	
 	// wires for addroundkey
 	wire [127:0] ark_r0_out,ark_r1_out,ark_r2_out,ark_r3_out,ark_r4_out,ark_r5_out,ark_r6_out,ark_r7_out,ark_r8_out,ark_r9_out;
@@ -24,35 +42,37 @@ module aes_top (
 	
 	// wires for keys and keygeneration
 	wire [1407:0] all_round_keys;
-	wire [127:0] k0  = all_round_keys[127:0];
-	wire [127:0] k1  = all_round_keys[255:128];
-	wire [127:0] k2  = all_round_keys[383:256];
-	wire [127:0] k3  = all_round_keys[511:384];
-	wire [127:0] k4  = all_round_keys[639:512];
-	wire [127:0] k5  = all_round_keys[767:640];
-	wire [127:0] k6  = all_round_keys[895:768];
-	wire [127:0] k7  = all_round_keys[1023:896];
-	wire [127:0] k8  = all_round_keys[1151:1024];
-	wire [127:0] k9  = all_round_keys[1279:1152];
+	wire [127:0] k0 = all_round_keys[127:0];
+	wire [127:0] k1 = all_round_keys[255:128];
+	wire [127:0] k2 = all_round_keys[383:256];
+	wire [127:0] k3 = all_round_keys[511:384];
+	wire [127:0] k4 = all_round_keys[639:512];
+	wire [127:0] k5 = all_round_keys[767:640];
+	wire [127:0] k6 = all_round_keys[895:768];
+	wire [127:0] k7 = all_round_keys[1023:896];
+	wire [127:0] k8 = all_round_keys[1151:1024];
+	wire [127:0] k9 = all_round_keys[1279:1152];
 	wire [127:0] k10 = all_round_keys[1407:1280];
 	
 	keyExpansion key_gen (
     .clk(clk),
     .ena(en),
     .start(start),
-    .key(key_128),
+	.rst(rst),
+    .key(key_128_reg),
     .w(all_round_keys),
     .done(key_done),
     .busy()
 	);
 	
 	//round 0
-	addRoundKey rk_r0 ( .inp(aes_inp), .key(k0), .out(ark_r0_out) );
+	addRoundKey rk_r0 ( .inp(aes_inp_reg), .key(k0), .out(ark_r0_out) );
 	
 	//round 1
 	subBytes sub_r1 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(key_done),
     .state(ark_r0_out),
     .sub_out(sub_r1_out),
@@ -66,6 +86,7 @@ module aes_top (
 	subBytes sub_r2 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r1_done),
     .state(ark_r1_out),
     .sub_out(sub_r2_out),
@@ -79,6 +100,7 @@ module aes_top (
 	subBytes sub_r3 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r2_done),
     .state(ark_r2_out),
     .sub_out(sub_r3_out),
@@ -92,6 +114,7 @@ module aes_top (
 	subBytes sub_r4 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r3_done),
     .state(ark_r3_out),
     .sub_out(sub_r4_out),
@@ -105,6 +128,7 @@ module aes_top (
 	subBytes sub_r5 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r4_done),
     .state(ark_r4_out),
     .sub_out(sub_r5_out),
@@ -118,6 +142,7 @@ module aes_top (
 	subBytes sub_r6 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r5_done),
     .state(ark_r5_out),
     .sub_out(sub_r6_out),
@@ -131,6 +156,7 @@ module aes_top (
 	subBytes sub_r7 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r6_done),
     .state(ark_r6_out),
     .sub_out(sub_r7_out),
@@ -144,6 +170,7 @@ module aes_top (
 	subBytes sub_r8 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r7_done),
     .state(ark_r7_out),
     .sub_out(sub_r8_out),
@@ -157,6 +184,7 @@ module aes_top (
 	subBytes sub_r9 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r8_done),
     .state(ark_r8_out),
     .sub_out(sub_r9_out),
@@ -170,6 +198,7 @@ module aes_top (
 	subBytes sub_r10 (
     .clk(clk),
     .ena(en),
+	.rst(rst),
     .start(sub_r9_done),
     .state(ark_r9_out),
     .sub_out(sub_r10_out),

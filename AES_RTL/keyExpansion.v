@@ -2,6 +2,7 @@ module keyExpansion (
     input wire clk,
     input wire ena,
     input wire start,
+	input wire rst,
     input wire [127:0] key,
     output reg [1407:0] w = 1408'd0,
     output reg done = 1'b0,
@@ -30,7 +31,7 @@ module keyExpansion (
     wire [31:0] douta_0, doutb_0;
     wire [31:0] douta_1, doutb_1;
 
-    wire bram_en = ena && ((state_fsm == RUN) || (state_fsm == WAIT_BRAM));
+    wire bram_en = ena && !rst && ((state_fsm == RUN) || (state_fsm == WAIT_BRAM));
 
     blk_mem_gen_0 sbox_k0 (
         .clka (clk),
@@ -81,7 +82,13 @@ module keyExpansion (
     endfunction
 
     always @(posedge clk) begin
-        if (ena) begin
+        if (rst) begin
+            state_fsm <= IDLE;
+            i <= 6'd0;
+            temp <= 32'd0;
+            w <= 1408'd0;
+            done <= 1'b0;
+        end else if (ena) begin
             done <= 1'b0;
 
             case (state_fsm)
@@ -100,23 +107,17 @@ module keyExpansion (
                 end
 
                 RUN: begin
-                    if (i < 6'd44) 
-					begin
-                        if (i[1:0] == 2'b00) 
-							begin
-								state_fsm <= WAIT_BRAM;
-							end
-						else 
-							begin
-								w_words[i] <= w_words[i - 4] ^ temp;
-								temp <= w_words[i - 4] ^ temp;
-								i <= i + 1'b1;
-							end
-                    end 
-					else 
-						begin
-							state_fsm <= FINISH;
-						end
+                    if (i < 6'd44) begin
+                        if (i[1:0] == 2'b00) begin
+                            state_fsm <= WAIT_BRAM;
+                        end else begin
+                            w_words[i] <= w_words[i - 4] ^ temp;
+                            temp <= w_words[i - 4] ^ temp;
+                            i <= i + 1'b1;
+                        end
+                    end else begin
+                        state_fsm <= FINISH;
+                    end
                 end
 
                 WAIT_BRAM: begin

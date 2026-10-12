@@ -2,6 +2,7 @@ module subBytes (
     input wire clk,
     input wire ena,
     input wire start,
+	input wire rst,
     input wire [127:0] state,
     output reg [127:0] sub_out = 128'd0,
     output reg done = 1'b0,
@@ -31,7 +32,7 @@ module subBytes (
     wire [31:0] douta_2, doutb_2;
     wire [31:0] douta_3, doutb_3;
 
-    wire mem_en = ena && (busy || start);
+    wire mem_en = ena && !rst && (busy || start);
 
     // BRAM 0
     blk_mem_gen_0 sbox0 (
@@ -86,7 +87,12 @@ module subBytes (
     );
 
     always @(posedge clk) begin
-        if (ena) begin
+        if (rst) begin
+            state_fsm <= 2'd0;
+            sub_out <= 128'd0;
+            done <= 1'b0;
+            busy <= 1'b0;
+        end else if (ena) begin
             done <= 1'b0;
 
             case (state_fsm)
@@ -128,6 +134,8 @@ module subBytes (
                     busy <= 1'b0;
                     state_fsm <= 2'd0;
                 end
+
+                default: state_fsm <= 2'd0;
             endcase
         end
     end
